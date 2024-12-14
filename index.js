@@ -1,13 +1,17 @@
 import express, { json } from 'express';
 import { Client } from 'pg';
 import cors from 'cors';
-require('dotenv').config();
+import dotenv from 'dotenv';
+
+// Initialize dotenv
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());  // Allow all domains to access the API
-
+// Middleware setup - should be before routes
+app.use(cors());
+app.use(json());
 
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
@@ -17,7 +21,6 @@ client.connect()
   .then(() => console.log('Connected to PostgreSQL'))
   .catch(err => console.error('Database connection error:', err));
 
-// Create the table if it doesn't exist
 const createTable = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS your_table (
@@ -26,11 +29,9 @@ const createTable = async () => {
       description TEXT
     );
   `;
-
   await client.query(query);
 };
 
-// Insert sample data if the table is empty
 const insertSampleData = async () => {
   const checkQuery = 'SELECT COUNT(*) FROM your_table;';
   const result = await client.query(checkQuery);
@@ -45,18 +46,17 @@ const insertSampleData = async () => {
   }
 };
 
-// Initialize database schema and data
-
 const initializeDatabase = async () => {
-    try {
-      await createTable();
-      await insertSampleData();
-      console.log('Database initialized successfully');
-    } catch (err) {
-      console.error('Database initialization failed:', err);
-    }
-  };
-// Express routes
+  try {
+    await createTable();
+    await insertSampleData();
+    console.log('Database initialized successfully');
+  } catch (err) {
+    console.error('Database initialization failed:', err);
+  }
+};
+
+// Routes
 app.get('/', (req, res) => {
   res.send('Hello from Node.js app with PostgreSQL!');
 });
@@ -71,26 +71,22 @@ app.get('/data', async (req, res) => {
   }
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  client.end();
+  process.exit(0);
+});
+
+// Initialize database and start server
+initializeDatabase();
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
 
-
-
-  
-  initializeDatabase();
-  
-  // Add this before your routes
-  app.use(json());
-  
-  // Add this after your routes
-  app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
-  });
-  
-  process.on('SIGTERM', () => {
-    client.end();
-    process.exit(0);
-  });
-  
