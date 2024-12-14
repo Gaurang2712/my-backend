@@ -51,7 +51,7 @@ const initializeDatabase = async () => {
     } catch (err) {
       console.error('Database initialization failed:', err);
     }
-  };c
+  };
 // Express routes
 app.get('/', (req, res) => {
   res.send('Hello from Node.js app with PostgreSQL!');
