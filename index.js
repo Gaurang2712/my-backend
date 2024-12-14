@@ -18,7 +18,7 @@ const corsOptions = {
   origin: [
     'http://localhost:3000',
     'http://localhost:3002',
-    'https://your-production-domain.com',
+    'https://my-backend-abgs.onrender.com',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
