@@ -42,9 +42,16 @@ const insertSampleData = async () => {
 };
 
 // Initialize database schema and data
-createTable();
-insertSampleData();
 
+const initializeDatabase = async () => {
+    try {
+      await createTable();
+      await insertSampleData();
+      console.log('Database initialized successfully');
+    } catch (err) {
+      console.error('Database initialization failed:', err);
+    }
+  };c
 // Express routes
 app.get('/', (req, res) => {
   res.send('Hello from Node.js app with PostgreSQL!');
@@ -65,15 +72,7 @@ app.listen(port, () => {
 });
 
 
-const initializeDatabase = async () => {
-    try {
-      await createTable();
-      await insertSampleData();
-      console.log('Database initialized successfully');
-    } catch (err) {
-      console.error('Database initialization failed:', err);
-    }
-  };
+
   
   initializeDatabase();
   
