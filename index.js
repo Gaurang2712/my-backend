@@ -3,7 +3,7 @@ import { Client } from 'pg';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import pkg from 'pg';
-const { Client } = pkg;
+
 
 // Initialize dotenv
 dotenv.config();
