@@ -1,9 +1,13 @@
-const express = require('express');
-const { Client } = require('pg');
+import express, { json } from 'express';
+import { Client } from 'pg';
+import cors from 'cors';
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+app.use(cors());  // Allow all domains to access the API
+
 
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
@@ -77,7 +81,7 @@ app.listen(port, () => {
   initializeDatabase();
   
   // Add this before your routes
-  app.use(express.json());
+  app.use(json());
   
   // Add this after your routes
   app.use((err, req, res, next) => {
