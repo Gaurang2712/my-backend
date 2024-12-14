@@ -77,10 +77,6 @@ app.post('/addUser', (req, res) => {
 // Static file serving AFTER API routes
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Fallback route for client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
 
 // PostgreSQL connection
 const pool = new Pool({
