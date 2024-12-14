@@ -1,94 +1,120 @@
-import express, { json } from 'express';
-import { Client } from 'pg';
+import bodyParser from 'body-parser';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import express from 'express';
+import path from 'path';
 import pkg from 'pg';
-
-
-// Initialize dotenv
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 dotenv.config();
+const { Pool } = pkg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3002;
 
-// Middleware setup - should be before routes
-app.use(cors());
-app.use(json());
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3002',
+    'https://your-production-domain.com',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+};
 
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
+// Middleware - IMPORTANT: place these in this specific order
+app.use(cors(corsOptions));
+app.use(bodyParser.json());
+
+// API routes BEFORE static file serving
+// Explicitly handle /users route BEFORE static serving
+app.get('/users', (req, res) => {
+  console.log('Accessing /users route directly');
+
+  // Add more verbose logging
+  console.log('Full request details:', {
+    method: req.method,
+    url: req.url,
+    headers: req.headers
+  });
+
+  const sql = 'SELECT * FROM users';
+  pool.query(sql, (err, result) => {
+    if (err) {
+      console.error('Detailed error retrieving users:', err);
+      return res.status(500).json({
+        error: 'Error retrieving users',
+        details: err.message
+      });
+    }
+
+    console.log('Users query result:', {
+      rowCount: result.rowCount,
+      rows: result.rows
+    });
+
+    // Ensure array is returned
+    res.json(result.rows || []);
+  });
 });
 
-client.connect()
-  .then(() => console.log('Connected to PostgreSQL'))
-  .catch(err => console.error('Database connection error:', err));
+app.post('/addUser', (req, res) => {
+  const { name, email, password } = req.body;
+  const sql =
+    'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *';
+  pool.query(sql, [name, email, password], (err, result) => {
+    if (err) {
+      console.error('Error creating user:', err);
+      res.status(500).json({ error: 'Error creating user' });
+    } else {
+      res.json(result.rows[0]); // Return the inserted user
+    }
+  });
+});
 
-const createTable = async () => {
-  const query = `
-    CREATE TABLE IF NOT EXISTS your_table (
+// Static file serving AFTER API routes
+app.use(express.static(path.join(__dirname, 'build')));
+
+// Fallback route for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
+
+// PostgreSQL connection
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME,
+});
+
+// Check the database connection
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('Error connecting to PostgreSQL:', err.stack);
+  } else {
+    console.log('PostgreSQL Connected...');
+    const sql = `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(100),
-      description TEXT
-    );
-  `;
-  await client.query(query);
-};
-
-const insertSampleData = async () => {
-  const checkQuery = 'SELECT COUNT(*) FROM your_table;';
-  const result = await client.query(checkQuery);
-  
-  if (result.rows[0].count === '0') {
-    const insertQuery = `
-      INSERT INTO your_table (name, description) VALUES
-      ('Item 1', 'Description of item 1'),
-      ('Item 2', 'Description of item 2');
-    `;
-    await client.query(insertQuery);
-  }
-};
-
-const initializeDatabase = async () => {
-  try {
-    await createTable();
-    await insertSampleData();
-    console.log('Database initialized successfully');
-  } catch (err) {
-    console.error('Database initialization failed:', err);
-  }
-};
-
-// Routes
-app.get('/', (req, res) => {
-  res.send('Hello from Node.js app with PostgreSQL!');
-});
-
-app.get('/data', async (req, res) => {
-  try {
-    const result = await client.query('SELECT * FROM your_table');
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Database query failed');
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      password VARCHAR(255) NOT NULL
+    )`;
+    client.query(sql, (err) => {
+      release();
+      if (err) {
+        console.error('Error creating table:', err);
+      } else {
+        console.log('Table created');
+      }
+    });
   }
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  client.end();
-  process.exit(0);
-});
-
-// Initialize database and start server
-initializeDatabase();
-
+// Run server
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
-
