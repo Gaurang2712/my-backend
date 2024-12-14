@@ -9,7 +9,9 @@ const client = new Client({
   connectionString: process.env.DATABASE_URL,
 });
 
-client.connect();
+client.connect()
+  .then(() => console.log('Connected to PostgreSQL'))
+  .catch(err => console.error('Database connection error:', err));
 
 // Create the table if it doesn't exist
 const createTable = async () => {
@@ -61,3 +63,31 @@ app.get('/data', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+
+
+const initializeDatabase = async () => {
+    try {
+      await createTable();
+      await insertSampleData();
+      console.log('Database initialized successfully');
+    } catch (err) {
+      console.error('Database initialization failed:', err);
+    }
+  };
+  
+  initializeDatabase();
+  
+  // Add this before your routes
+  app.use(express.json());
+  
+  // Add this after your routes
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+  });
+  
+  process.on('SIGTERM', () => {
+    client.end();
+    process.exit(0);
+  });
+  
