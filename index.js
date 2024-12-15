@@ -25,6 +25,10 @@ const corsOptions = {
 };
 
 // Middleware - IMPORTANT: place these in this specific order
+const cors = require('cors');
+app.use(cors({
+  origin: 'https://fuckyou-u0e9.onrender.com'
+}));
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
