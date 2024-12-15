@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import pkg from 'pg';
 import dotenv from 'dotenv';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs'; // Changed from 'bcrypt'
 
 dotenv.config();
 const { Pool } = pkg;
